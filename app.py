@@ -17,21 +17,25 @@ count_h = st.sidebar.number_input("세로 개수(pcs)", value=10)
 st.sidebar.header("⚡ 전기 및 여유율 설정")
 power_per_cab = st.sidebar.number_input("캐비닛당 최대소비전력(W)", value=600)
 
-# 전력 여유율 선택 (사용자 요청 반영: 직접 변경 가능)
+# 전력 여유율 선택
 margin_percent = st.sidebar.slider("전력 여유율 추가 (%)", min_value=0, max_value=100, value=70, step=5)
 st.sidebar.info(f"💡 현재 실제 전력의 {100 + margin_percent}%로 설계 중")
 
 breaker_branch = st.sidebar.selectbox("분기 차단기 용량 (단상 220V)", [20, 30])
 
-# --- 2. 연산 로직 (가변 여유율 적용) ---
+# --- 2. 연산 로직 ---
 
-# 기본 규격 계산
-total_res_w = int(cab_w_mm / pitch) * count_w
-total_res_h = int(cab_h_mm / pitch) * count_h
+# [추가] 캐비닛 1개당 해상도 계산
+cab_res_w = int(cab_w_mm / pitch)
+cab_res_h = int(cab_h_mm / pitch)
+
+# 전체 규격 계산
+total_res_w = cab_res_w * count_w
+total_res_h = cab_res_h * count_h
 total_width_m = (cab_w_mm * count_w) / 1000
 total_height_m = (cab_h_mm * count_h) / 1000
 
-# [핵심] 전력 계산 (가변 여유율 반영)
+# 전력 계산 (가변 여유율 반영)
 raw_power_w = (count_w * count_h) * power_per_cab
 margin_factor = 1 + (margin_percent / 100)
 design_power_w = raw_power_w * margin_factor
@@ -72,6 +76,8 @@ col_left, col_right = st.columns(2)
 with col_left:
     st.success("### 🛠️ 하드웨어 구성")
     st.write(f"- **픽셀 피치:** P{pitch}")
+    # 캐비닛 개당 해상도 표시 추가
+    st.write(f"- **캐비닛 해상도:** {cab_res_w} x {cab_res_h} (px)") 
     st.write(f"- **총 캐비닛:** {count_w * count_h}개 ({count_w}x{count_h})")
     st.write(f"- **총 면적:** {total_width_m * total_height_m:.2f}㎡")
     st.write(f"- **권장 시청 거리:** {pitch * 1:.1f}m 이상")
@@ -92,7 +98,5 @@ with col_right:
     st.write(f"• **분기 차단기:** {breaker_branch}A x **{required_circuits}회로**")
     st.write(f"• **분기 CV 전선:** {get_cv_size(breaker_branch)} x 3C")
     st.write(f"• **상별 부하:** 약 {math.ceil(required_circuits/3)}회로씩 분배")
-
-
 
 st.info(f"💡 **설계 가이드:** \n- **일반 현장:** 여유율 20~30% 추천 \n- **관공서/장시간 운영:** 여유율 50~70% 추천 \n- **초안전 설계:** 여유율 70% 이상 추천")
